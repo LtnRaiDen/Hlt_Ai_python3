@@ -1,10 +1,11 @@
 import queue
 
-from . import constants
-from .entity import Entity, Shipyard, Ship, Dropoff
-from .player import Player
-from .positionals import Direction, Position
-from .common import read_input
+import hlt_constants as constants
+from hlt_entity import Entity, Shipyard, Ship, Dropoff
+from hlt_player import Player
+from hlt_positionals import Direction, Position
+from hlt_common import read_input
+
 
 
 class MapCell:

@@ -1,6 +1,6 @@
-from .entity import Shipyard, Ship, Dropoff
-from .positionals import Position
-from .common import read_input
+from hlt_entity import Shipyard, Ship, Dropoff
+from hlt_positionals import Position
+from hlt_common import read_input
 
 class Player:
     """

@@ -1,3 +1,5 @@
+import logging
+
 # Placed here to avoid circular imports
 def read_input():
     """
