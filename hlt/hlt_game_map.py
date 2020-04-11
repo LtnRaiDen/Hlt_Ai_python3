@@ -1,10 +1,10 @@
 import queue
 
-import hlt_constants as constants
-from hlt_entity import Entity, Shipyard, Ship, Dropoff
-from hlt_player import Player
-from hlt_positionals import Direction, Position
-from hlt_common import read_input
+import hlt.hlt_constants as constants
+from hlt.hlt_entity import Entity, Shipyard, Ship, Dropoff
+from hlt.hlt_player import Player
+from hlt.hlt_positionals import Direction, Position
+from hlt.hlt_common import read_input
 
 
 

@@ -2,9 +2,9 @@ import json
 import logging
 import sys
 
-from hlt_common import read_input
-import hlt_constants as constants
-from hlt_game_map import GameMap, Player
+from hlt.hlt_common import read_input
+import hlt.hlt_constants as constants
+from hlt.hlt_game_map import GameMap, Player
 
 class Game:
     """

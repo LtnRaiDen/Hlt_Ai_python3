@@ -1,5 +1,5 @@
-import hlt_commands as commands
-import hlt_constants as constants
+import hlt.hlt_commands as commands
+import hlt.hlt_constants as constants
 
 class Direction:
     """

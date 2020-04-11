@@ -1,10 +1,10 @@
 import abc
 
-import hlt_commands as commands
-import hlt_constants as constants
+import hlt.hlt_commands as commands
+import hlt.hlt_constants as constants
 
-from hlt_positionals import Direction, Position
-from hlt_common import read_input
+from hlt.hlt_positionals import Direction, Position
+from hlt.hlt_common import read_input
 
 
 class Entity(abc.ABC):
