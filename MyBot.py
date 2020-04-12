@@ -130,7 +130,7 @@ def closest_dropoff(ship, game):
 
     return closest_dropoff
 
-def go_dropoff(ship, game, commands):
+def go_dropoff(ship, game, commands, map_game):
 
     target = closest_dropoff(ship, game)
 
@@ -142,27 +142,14 @@ def go_dropoff(ship, game, commands):
 
         target = target[1].position
 
-    movement = get_movement(ship.position, target)
+    movement = get_movement(ship.position, target, map_game, commands)
 
-    commands.append(ship.move(movement))
+    return ship.move(movement)
 
-def get_movement(position1, position2):
-
-    if position1.x > position2.x:
-        return Direction.West
-    elif position1.x < position2.x:
-        return Direction.East
-    elif position1.x == position2.x:
-        if position1.y > position2.y:
-            return Direction.North
-        elif position1.y < position2.y:
-            return Direction.South
-
-    
 
 
 def look_best_cell(ship, game, range_look):
-    maximum_halite = 100
+    maximum_halite = 0
     target = None
 
     for x in range(0,range_look):
@@ -176,8 +163,6 @@ def look_best_cell(ship, game, range_look):
     
                 maximum_halite = game.game_map[Position(cell_pos_x, cell_pos_y)].halite_amount 
                 target = game.game_map[Position(cell_pos_x, cell_pos_y)]
-
-    logging.info(target)
 
     return target
 
@@ -211,11 +196,11 @@ def too_close_to_ship(game,ship):
 
     
 
-def go_target(agent, game, commands):
+def go_target(agent, game, commands, map_game):
 
-    movement = get_movement(agent.ship.position, agent.target.position)
+    movement = get_movement(agent.ship.position, agent.target.position, map_game, commands)
 
-    commands.append(agent.ship.move(movement))
+    return agent.ship.move(movement)
 
 def on_target(agent):
 
@@ -225,15 +210,16 @@ def on_target(agent):
 
     return False
 
-def accomplish_mission(agent, game, commands):
+def accomplish_mission(agent, game, commands, map_game):
 
     if agent.target.position not in [agent.ship.position]:
 
-        go_target(agent, game, commands)
+        return go_target(agent, game, commands, map_game)
 
     else:
 
-        commands.append(agent.ship.stay_still())
+        return agent.ship.stay_still()
+
 
 def mission_accomplished(agent, game):
 
@@ -247,7 +233,120 @@ def mission_accomplished(agent, game):
 
     return False
 
+def no_ship_close_shipyard(game):
 
+    check = [[1,-1],[1,0],[1,1],[0,-1],[0,0],[0,1],[-1,-1],[-1,0],[-1,1]]
+
+    for cell in check:
+
+        posx = get_position_shipyard(game).x + cell[0]
+        posy = get_position_shipyard(game).y + cell[1]
+
+        if game.game_map[Position(posx, posy)].ship:
+
+            return False
+
+    return True
+
+def check_other_ships_movement(game, commands):
+
+    next_used_case = []
+
+    for command in commands:
+
+        command_split = command.split(" ")
+        logging.info(command_split)
+
+        if command_split[0] in ["m"]:
+
+            direction = command_split[2]
+            ships = get_ships(game)
+
+            for ship in ships:
+
+                if ship.id == int(command_split[1]):
+                    if direction in ["n"]:
+                        next_used_case.append(Position(ship.position.x , ship.position.y-1)) 
+                    if direction  in ["s"]:
+                        next_used_case.append(Position(ship.position.x , ship.position.y+1)) 
+                    if direction  in ["e"]:
+                        next_used_case.append(Position(ship.position.x+1 , ship.position.y)) 
+                    if direction  in ["w"]:
+                        next_used_case.append(Position(ship.position.x-1 , ship.position.y)) 
+                    if direction in ["o"]:
+                        next_used_case.append(Position(ship.position.x , ship.position.y))
+                        
+    
+    return next_used_case
+
+
+
+def get_movement(position1, position2, map_game, commands):
+
+    other_movs = check_other_ships_movement(game, commands)
+    #map_game.map_nodes[Position(position1.x-1, position1.y)] != -1 and
+    if position1.x > position2.x:
+        if Position(position1.x-1, position1.y) not in other_movs:
+            return Direction.West
+        else:
+            logging.info("going oposite")
+            return Direction.East
+    elif position1.x < position2.x:
+        if Position(position1.x+1, position1.y) not in other_movs:
+            return Direction.East
+        else:
+            logging.info("going oposite")
+            return Direction.West
+    elif position1.x == position2.x:
+        if position1.y > position2.y:
+            if Position(position1.x, position1.y-1) not in other_movs:
+                return Direction.North
+            else:
+                logging.info("going oposite")
+                return Direction.South
+        elif position1.y < position2.y:
+            if Position(position1.x, position1.y+1) not in other_movs:
+                return Direction.South
+            else:
+                logging.info("going oposite")
+                return Direction.North
+
+class Map_node:
+    def __init__(self, position):
+
+        self.up = game.game_map[position.x, position.y-1]
+        self.down = game.game_map[position.x, position.y+1]
+        self.rigth = game.game_map[position.x+1, position.y]
+        self.left = game.game_map[position.x-1, position.y]
+        self.position = game.game_map[position]
+        self.value = -1 if game.game_map[position].ship else game.game_map[position].halite_amount
+        self.is_targeted = False
+
+    def go_up(self):
+        return Direction.North
+    def go_down(self):
+        return Direction.South
+    def go_right(self):
+        return Direction.East
+    def go_left(self):
+        return Direction.West
+
+class Map:
+    def __init__(self):
+        self.width = game.game_map.width
+        self.height = game.game_map.height
+
+        self.map_nodes = {}
+
+        for w in range(0, self.width):
+            for h in range(0, self.height):
+                
+                self.map_nodes[Position(w,h)] = Map_node(Position(w,h))
+
+    def get_movement_price(self, actual_position, direction):
+
+        return self.map_nodes[actual_position].value // (self.map_nodes[actual_position].value *10 // 100) if self.map_nodes[actual_position].value != -1 else -1
+    
 class Agent:
 
     def __init__(self):
@@ -262,9 +361,9 @@ class Agent:
         self.ship = ship
         self.current = None 
 
-    def get_target(self, game):
+    def get_target(self, game, map_game):
 
-        self.target = look_best_cell(self.ship, game, 4)
+        self.target = look_best_cell(self.ship, game, 6)
 
 class Actions:
     def __init__(self):
@@ -285,17 +384,15 @@ class Actions:
             if ship_id not in alive:
                 del self.agents[ship_id]
 
-    def give_ordres(self, game):
+
+    def give_ordres(self, game, turn, map_game):
         commands = []
+
         if not self.agents:
             commands.append(game.me.shipyard.spawn())
             self.created = 0
 
         for agent in self.agents.values():
-
-            if too_close_to_ship(game, agent.ship):
-
-                agent.returning = True
 
             if agent.returning and agent.ship.halite_amount <= 50:
 
@@ -307,7 +404,7 @@ class Actions:
 
             if agent.returning:
 
-                go_dropoff(agent.ship, game, commands)
+                commands.append(go_dropoff(agent.ship, game, commands, map_game))
 
             else :
 
@@ -318,13 +415,11 @@ class Actions:
 
                 if agent.mission:
 
-                    logging.info("agent got a mission")
-
-                    accomplish_mission(agent, game, commands)
+                    commands.append(accomplish_mission(agent, game, commands, map_game))
 
                 else:
 
-                    agent.get_target(game)
+                    agent.get_target(game, map_game)
 
                     agent.mission = True
 
@@ -332,7 +427,7 @@ class Actions:
 
                     agent.mission = False                   
 
-        if game.me.halite_amount > 2000 and len(self.agents) < 10:
+        if game.me.halite_amount > 3999 and len(self.agents) < 10 and no_ship_close_shipyard(game) and turn < 150:
             if self.created > 5:
                 commands.append(game.me.shipyard.spawn())
                 self.created = 0
@@ -348,13 +443,16 @@ game.ready('3 sigma')
 
 actions = Actions()
 
+turn = 0
+map_game = Map()
+
 while True:
 
+    turn += 1 
+
     game.update_frame()
-
     actions.update(game)
-
-    commands = actions.give_ordres(game)
+    commands = actions.give_ordres(game, turn, map_game)
 
 
     game.end_turn(commands)
