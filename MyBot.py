@@ -261,55 +261,58 @@ def check_other_ships_movement(game, commands):
 
             direction = command_split[2]
             ships = get_ships(game)
+            ships += get_enemy_ships(game)
 
             for ship in ships:
 
                 if ship.id == int(command_split[1]):
                     if direction in ["n"]:
                         next_used_case.append(Position(ship.position.x , ship.position.y-1)) 
-                    if direction  in ["s"]:
+                    if direction in ["s"]:
                         next_used_case.append(Position(ship.position.x , ship.position.y+1)) 
-                    if direction  in ["e"]:
+                    if direction in ["e"]:
                         next_used_case.append(Position(ship.position.x+1 , ship.position.y)) 
-                    if direction  in ["w"]:
+                    if direction in ["w"]:
                         next_used_case.append(Position(ship.position.x-1 , ship.position.y)) 
                     if direction in ["o"]:
                         next_used_case.append(Position(ship.position.x , ship.position.y))
-                        
     
     return next_used_case
-
 
 
 def get_movement(position1, position2, map_game, commands):
 
     other_movs = check_other_ships_movement(game, commands)
+    lst_ship_pos = [ship.position for ship in get_ships(game)]
+
     #map_game.map_nodes[Position(position1.x-1, position1.y)] != -1 and
     if position1.x > position2.x:
-        if Position(position1.x-1, position1.y) not in other_movs:
+        if (Position(position1.x-1, position1.y) not in other_movs) and (Position(position1.x-1, position1.y) not in lst_ship_pos):
             return Direction.West
         else:
             logging.info("going oposite")
             return Direction.East
     elif position1.x < position2.x:
-        if Position(position1.x+1, position1.y) not in other_movs:
+        if (Position(position1.x+1, position1.y) not in other_movs) and (Position(position1.x+1, position1.y) not in lst_ship_pos):
             return Direction.East
         else:
             logging.info("going oposite")
             return Direction.West
     elif position1.x == position2.x:
         if position1.y > position2.y:
-            if Position(position1.x, position1.y-1) not in other_movs:
+            if (Position(position1.x, position1.y-1) not in other_movs) and (Position(position1.x, position1.y-1) not in lst_ship_pos):
                 return Direction.North
             else:
                 logging.info("going oposite")
                 return Direction.South
         elif position1.y < position2.y:
-            if Position(position1.x, position1.y+1) not in other_movs:
+            if (Position(position1.x, position1.y+1) not in other_movs) and (Position(position1.x, position1.y+1) not in lst_ship_pos):
                 return Direction.South
             else:
                 logging.info("going oposite")
                 return Direction.North
+
+    return Direction.Still
 
 class Map_node:
     def __init__(self, position):

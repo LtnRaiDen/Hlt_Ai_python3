@@ -101,6 +101,7 @@ def look(ship, game, direction, length, opponents_in_range, danger_cost):
 
     return val
 
+
 def weights_to_direction(weights):
     return INDEX_TO_DIRECTION[
         weights.index(max(weights))
@@ -133,15 +134,19 @@ def get_unload_positions(game):
         dropoff.position for dropoff in game.me.get_dropoffs()
     ]
 
+
 def get_unload_distance(ship, game):
     return min(game.game_map.calculate_distance(ship.position, p) for p in get_unload_positions(game))
+
 
 def get_move_cost(game, position):
     return (game.game_map[position].halite_amount / constants.MAX_HALITE) * TIME_TO_HALITE_RATIO
 
+
 def has_enemy(game, position):
     cell = game.game_map[position]
     return cell.ship and cell.ship.owner != game.my_id
+
 
 def get_danger_cost(game, position):
     cost = 0.0
@@ -151,6 +156,7 @@ def get_danger_cost(game, position):
         if has_enemy(game, cardinal):
             cost += 0.25
     return cost
+
 
 def get_halite_amount(game):
     total = 0
@@ -173,6 +179,7 @@ def get_halite_around(game, position, radius):
                 t += game.game_map[Position(position.x + x, position.y + y)].halite_amount / (4 * (abs(x) + abs(y) + 1))
     return t
 
+
 def get_enemy_ships(game):
     s = []
     for i, p in game.players.items():
@@ -180,6 +187,7 @@ def get_enemy_ships(game):
             for ship in p.get_ships():
                 s.append(ship)
     return s
+
 
 def get_too_close_to_enemy(game, position):
     for i, p in game.players.items():
