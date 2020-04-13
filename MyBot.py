@@ -412,7 +412,7 @@ class Actions:
             else :
 
                 if agent.ship.position.x > get_position_shipyard(game).x + 10 or agent.ship.position.y > get_position_shipyard(game).y +10 or agent.ship.position.x > get_position_shipyard(game).x -10 or agent.ship.position.y > get_position_shipyard(game).y -10:
-                    if game.me.halite_amount > 6000:
+                    if game.me.halite_amount > 7000 and agent.ship.make_dropoff() not in commands:
                         commands.append(agent.ship.make_dropoff())
                     pass
 
