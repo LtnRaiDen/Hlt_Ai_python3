@@ -128,8 +128,36 @@ def go_dropoff(ship, game, commands, map_game):
     return ship.move(movement)
 
 
+def get_deplacement_cost(position1, position2):
 
-def look_best_cell(ship, game, range_look):
+    max_x, min_x = max(position1.x, position2.x), min (position1.x, position2.x)
+    max_y, min_y = max(position1.y, position2.y), min (position1.y, position2.y)
+
+    total_cost = 0
+
+    actual_position = Position(min_x , min_y)
+
+    for y in range(0, max_y - min_y):
+
+        next_deplacement = Position(actual_position.x, actual_position.y + y)
+
+        total_cost += game.game_map.calculate_distance(actual_position, next_deplacement)
+
+        actual_position = next_deplacement
+
+    for x in range(0, max_x - min_x):
+    
+        next_deplacement = Position(actual_position.x + x, actual_position.y)
+
+        total_cost += game.game_map.calculate_distance(actual_position, next_deplacement)
+
+        actual_position = next_deplacement
+
+    return total_cost
+
+
+
+def look_best_cell(ship, game, range_look, avoid_cells):
     """ looking for the best cells in a given radius
     
     Arguments:
@@ -143,17 +171,21 @@ def look_best_cell(ship, game, range_look):
     maximum_halite = 0
     target = None
 
-    for x in range(0,range_look):
+    for x in range(1,range_look):
 
-        for y in range(0,range_look):
+        for y in range(1,range_look):
     
             cell_pos_x = ship.position.x + x
             cell_pos_y = ship.position.y + y
 
             if game.game_map[Position(cell_pos_x, cell_pos_y)].halite_amount > maximum_halite and Position(cell_pos_x, cell_pos_y) != get_position_shipyard(game):
+
+                if game.game_map[Position(cell_pos_x, cell_pos_y)] not in avoid_cells:
+
+                    if get_deplacement_cost(ship.position, Position(cell_pos_x, cell_pos_y)) - 250 <  game.game_map[Position(cell_pos_x, cell_pos_y)].halite_amount:
     
-                maximum_halite = game.game_map[Position(cell_pos_x, cell_pos_y)].halite_amount 
-                target = game.game_map[Position(cell_pos_x, cell_pos_y)]
+                        maximum_halite = game.game_map[Position(cell_pos_x, cell_pos_y)].halite_amount 
+                        target = game.game_map[Position(cell_pos_x, cell_pos_y)]
 
     return target
 
@@ -402,7 +434,16 @@ class Agent:
 
     def get_target(self, game, map_game):
 
-        self.target = look_best_cell(self.ship, game, 6)
+        self.target = look_best_cell(self.ship, game, 4, [])
+
+        range_count = 0 
+
+        while not self.target:
+
+            range_count += range_count
+
+            look_best_cell(self.ship, game, 4 + range_count, [])
+
 
 class Actions:
     """ochestrator of the actions, switching agent status, given commands to agents
@@ -411,6 +452,19 @@ class Actions:
     def __init__(self):
         self.agents = {}
         self.created = 0
+
+    def get_best_cell(self, curr_agent,  game, radius):
+    
+        avoid_cells = []
+    
+        for agent in self.agents.values():
+
+            if agent.target:
+
+                avoid_cells.append(agent.target)
+
+        return look_best_cell(curr_agent.ship, game, radius, avoid_cells)
+    
     def update(self, game):
         """ update function, that , every turn update the info of the agents,
         if they are dead they are popped of the list
@@ -426,6 +480,7 @@ class Actions:
             else:
                 self.agents[ship.id] = Agent()
                 self.agents[ship.id].update(ship)
+                self.agents[ship.id].target =  self.get_best_cell( self.agents[ship.id],  game, 12)
 
         for ship_id in list(self.agents.keys()):
             if ship_id not in alive:
@@ -449,7 +504,9 @@ class Actions:
             commands.append(game.me.shipyard.spawn())
             self.created = 0
 
-        for agent in self.agents.values():
+        agents = self.agents.values()
+
+        for agent in agents:
 
             if agent.returning and agent.ship.halite_amount <= 50:
 
@@ -464,11 +521,13 @@ class Actions:
                 commands.append(go_dropoff(agent.ship, game, commands, map_game))
 
             else :
-
+                
+                """
                 if agent.ship.position.x > get_position_shipyard(game).x + 10 or agent.ship.position.y > get_position_shipyard(game).y +10 or agent.ship.position.x > get_position_shipyard(game).x -10 or agent.ship.position.y > get_position_shipyard(game).y -10:
                     if game.me.halite_amount > 7000 and agent.ship.make_dropoff() not in commands:
                         commands.append(agent.ship.make_dropoff())
                     pass
+                """
 
                 if agent.mission:
 
@@ -476,7 +535,7 @@ class Actions:
 
                 else:
 
-                    agent.get_target(game, map_game)
+                    agent.target = self.get_best_cell(agent, game, 5)
 
                     agent.mission = True
 
@@ -484,7 +543,7 @@ class Actions:
 
                     agent.mission = False                   
 
-        if game.me.halite_amount > 3999 and len(self.agents) < 10 and no_ship_close_shipyard(game) and turn < 150:
+        if game.me.halite_amount > 1999 and len(self.agents) < 10 and no_ship_close_shipyard(game) and turn < 150:
             if self.created > 5:
                 commands.append(game.me.shipyard.spawn())
                 self.created = 0
