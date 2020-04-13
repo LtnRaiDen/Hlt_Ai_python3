@@ -284,6 +284,7 @@ def get_movement(position1, position2, map_game, commands):
 
     other_movs = check_other_ships_movement(game, commands)
     lst_ship_pos = [ship.position for ship in get_ships(game)]
+    lst_ship_pos += [ship.position for ship in get_enemy_ships(game)]
 
     #map_game.map_nodes[Position(position1.x-1, position1.y)] != -1 and
     if position1.x > position2.x:
