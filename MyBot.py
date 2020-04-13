@@ -18,66 +18,55 @@ random.seed(0)
 
 FULL = 700
 EMPTY = 50
-
-INDEX_TO_DIRECTION = {
-    0: Direction.North,
-    1: Direction.South,
-    2: Direction.East,
-    3: Direction.West,
-    4: Direction.Still,
-}
-
-DIRECTION_TO_INDEX = {v: k for k, v in INDEX_TO_DIRECTION.items()}
-
-CONSTRAIN_WEIGHT = -1.0
-MIN_WEIGHT = 0.0
-MAX_WEIGHT = 1.0
-
 TIME_TO_HALITE_RATIO = 0.5
-
-AUTO_RETURN_RATIO = 1.4
-MOVE_COST_TIME = 2.7178 ** 2
-
-STOP_BUYING_RATIO = 1.27
-STOP_BUYING_RESOUCES = 0.36
-SAFE_RETURN_RATIO = 1.7
-HALITE_SAVED_BONUS = 1.5
-
-DANGER_WEIGHT = 10.0
-
-MIN_SHIPS_TO_BUY_DROPOFF = 12
-RADIUS_TO_STOP = 6
-
-CONSTANT_BUFFER = 4
-
-OPTIMAL_DISTANCE = 14
 MIN_DISTANCE = 4
 
 
 def get_ships(game):
+    """ return all the players ship
+    
+    Arguments:
+        game object -- Halite game object
+    
+    Returns:
+        list -- ship entity
+    """
     return game.me.get_ships()
 
 def get_position_shipyard(game):
+    """ return position of the shipyard
+    
+    Arguments:
+        game object -- Halite game object
+    
+    Returns:
+        poistion object -- X and Y in an object
+    """
     return game.me.shipyard.position
 
 
 def get_position_dropoff(game):
+    """ return a list of dropoffs
+    
+    Arguments:
+        game object -- Halite game object
+    
+    Returns:
+        list Structure entity -- list of structure if they are dropoffs
+    """
     return [dropoff.position for dropoff in game.me.get_dropoffs()]
 
 
-def get_game_map_cells(game):
-    return game.game_map.cells
-
-
-def get_cell_halite(cell):
-    return cell.halite_amount
-
-
-def get_cell_pos(cell):
-    return cell.position
-
 
 def get_enemy_ships(game):
+    """ returns ennemy ships
+    
+    Arguments:
+        game object -- Halite game object
+    
+    Returns:
+        list Ships -- list containing ennemy ships
+    """
     s = []
     for i, p in game.players.items():
         if i != game.my_id:
@@ -85,36 +74,17 @@ def get_enemy_ships(game):
                 s.append(ship)
     return s
 
-def get_halite_around(game, position, radius):
-    t = 0
-    for x in range(-radius, radius + 1):
-        for y in range(-radius, radius + 1):
-            if abs(x) + abs(y) <= radius:
-                t += game.game_map[Position(position.x + x, position.y + y)].halite_amount / (4 * (abs(x) + abs(y) + 1))
-    return t
-
-def is_too_close_to_enemy(game, position):
-    for i, p in game.players.items():
-        if i != game.my_id:
-            if game.game_map.calculate_distance(position, p.shipyard.position) < MIN_DISTANCE:
-                return True
-            for do in p.get_dropoffs():
-                if game.game_map.calculate_distance(position, do.position) < 2:
-                    return True 
-    return False
-
-def get_move_cost(game, position):
-    return (game.game_map[position].halite_amount / constants.MAX_HALITE) * TIME_TO_HALITE_RATIO
-
-def has_enemy(game, position):
-    cell = game.game_map[position]
-    return cell.ship and cell.ship.owner != game.my_id
-
-def is_shipyard_or_dropoff(game, position):
-    cell = game.game_map[position]
-    return cell.structure and cell.structure.owner == game.my_id
 
 def closest_dropoff(ship, game):
+    """ return the closest drop
+    
+    Arguments:
+        ship object -- Halite game object
+        game object -- Halite game object
+    
+    Returns:
+        [distance, structure object] -- structure, either shipyard or dropoff
+    """
 
     dropoffs = get_position_dropoff(game)
 
@@ -131,6 +101,17 @@ def closest_dropoff(ship, game):
     return closest_dropoff
 
 def go_dropoff(ship, game, commands, map_game):
+    """ command method getting the closest shipyard or dropoff and get the mouvement to ge to it
+    
+    Arguments:
+        ship object -- Halite game object
+        game object -- Halite game object
+        commands list of string -- commands to the agents
+        map_game Map -- custom map object
+    
+    Returns:
+        move order -- move order given to the ship with a direction
+    """
 
     target = closest_dropoff(ship, game)
 
@@ -149,6 +130,16 @@ def go_dropoff(ship, game, commands, map_game):
 
 
 def look_best_cell(ship, game, range_look):
+    """ looking for the best cells in a given radius
+    
+    Arguments:
+        ship object -- Halite game object
+        game object -- Halite game object
+        range_look int -- radius
+    
+    Returns:
+        cell object -- the cell object wit hthe highest amount of halite
+    """
     maximum_halite = 0
     target = None
 
@@ -166,43 +157,34 @@ def look_best_cell(ship, game, range_look):
 
     return target
 
-
-def get_too_close_to_enemy_base(game, position):
-    for i, p in game.players.items():
-        if i != game.my_id:
-            if game.game_map.calculate_distance(position, p.shipyard.position) < MIN_DISTANCE:
-                return True
-            for do in p.get_dropoffs():
-                if game.game_map.calculate_distance(position, do.position) < 2:
-                    return True 
-    return False
-
-def too_close_to_ship(game,ship):
-    ship_close = None
-
-    for x in range(1,3):
-        for y in range(1,3):
-
-            cell_pos_x = ship.position.x + x
-            cell_pos_y = ship.position.y + y
-
-            for other_ship in get_enemy_ships(game):
-
-                if game.game_map.calculate_distance(other_ship.position, Position(cell_pos_x,cell_pos_y)) < MIN_DISTANCE:
-
-                    ship_close = other_ship
-
-    return ship_close
-
     
 
 def go_target(agent, game, commands, map_game):
+    """get the movement order to go to the given target
+    
+    Arguments:
+        game object -- Halite game object
+        ship object -- Halite game object
+        commands list of string -- commands given to the ships
+        map_game Map custom object
+    
+    Returns:
+        move order -- move order given to the ship with a direction
+    """
 
     movement = get_movement(agent.ship.position, agent.target.position, map_game, commands)
 
     return agent.ship.move(movement)
 
 def on_target(agent):
+    """check if the agent is on his target
+    
+    Arguments:
+        agent custom object -- encapsulate ship
+    
+    Returns:
+        boolean -- True or False
+    """
 
     if agent.ship.position == agent.target.position:
 
@@ -211,6 +193,17 @@ def on_target(agent):
     return False
 
 def accomplish_mission(agent, game, commands, map_game):
+    """ fonction that dispacth the command to the agents
+    
+    Arguments:
+        game object -- Halite game object
+        ship object -- Halite game object
+        commands list of string -- commands given to the ships
+        map_game Map custom object
+    
+    Returns:
+        movement order -- direction for the given agent
+    """
 
     if agent.target.position not in [agent.ship.position]:
 
@@ -222,6 +215,16 @@ def accomplish_mission(agent, game, commands, map_game):
 
 
 def mission_accomplished(agent, game):
+    """check is the mission is accomplished
+    
+    Arguments:
+        game object -- Halite game object
+        agent custom object -- encapuslate ships
+
+    
+    Returns:
+        boolean -- True or False
+    """
 
     if not agent.target:
 
@@ -234,6 +237,14 @@ def mission_accomplished(agent, game):
     return False
 
 def no_ship_close_shipyard(game):
+    """check if the ship is too close to the shipyard
+    
+    Arguments:
+        game object -- Halite game object
+  
+    Returns:
+        boolean -- True or False
+    """
 
     check = [[1,-1],[1,0],[1,1],[0,-1],[0,0],[0,1],[-1,-1],[-1,0],[-1,1]]
 
@@ -249,6 +260,15 @@ def no_ship_close_shipyard(game):
     return True
 
 def check_other_ships_movement(game, commands):
+    """Check the commands of all the other ships to make sure that they will be no collision on the n+1 turn
+    
+    Arguments:
+        game object -- Halite game object
+        commands list of string -- commands given to the ships
+    
+    Returns:
+        List of coordinates already used
+    """
 
     next_used_case = []
 
@@ -281,6 +301,17 @@ def check_other_ships_movement(game, commands):
 
 
 def get_movement(position1, position2, map_game, commands):
+    """ general method for an agent to get his movement order
+    
+    Arguments:
+        Position1 Position object -- agent
+        Position2 Position object -- target 
+        commands list of string -- commands given to the ships
+        map_game Map custom object
+    
+    Returns:
+        [type] -- [description]
+    """
 
     other_movs = check_other_ships_movement(game, commands)
     lst_ship_pos = [ship.position for ship in get_ships(game)]
@@ -291,31 +322,29 @@ def get_movement(position1, position2, map_game, commands):
         if (Position(position1.x-1, position1.y) not in other_movs) and (Position(position1.x-1, position1.y) not in lst_ship_pos):
             return Direction.West
         else:
-            logging.info("going oposite")
             return Direction.East
     elif position1.x < position2.x:
         if (Position(position1.x+1, position1.y) not in other_movs) and (Position(position1.x+1, position1.y) not in lst_ship_pos):
             return Direction.East
         else:
-            logging.info("going oposite")
             return Direction.West
     elif position1.x == position2.x:
         if position1.y > position2.y:
             if (Position(position1.x, position1.y-1) not in other_movs) and (Position(position1.x, position1.y-1) not in lst_ship_pos):
                 return Direction.North
             else:
-                logging.info("going oposite")
                 return Direction.South
         elif position1.y < position2.y:
             if (Position(position1.x, position1.y+1) not in other_movs) and (Position(position1.x, position1.y+1) not in lst_ship_pos):
                 return Direction.South
             else:
-                logging.info("going oposite")
                 return Direction.North
 
     return Direction.Still
 
 class Map_node:
+    """encapsulation of the game_map.cell
+    """
     def __init__(self, position):
 
         self.up = game.game_map[position.x, position.y-1]
@@ -336,6 +365,9 @@ class Map_node:
         return Direction.West
 
 class Map:
+    """encapsulation of the game_map
+
+    """
     def __init__(self):
         self.width = game.game_map.width
         self.height = game.game_map.height
@@ -352,6 +384,9 @@ class Map:
         return self.map_nodes[actual_position].value // (self.map_nodes[actual_position].value *10 // 100) if self.map_nodes[actual_position].value != -1 else -1
     
 class Agent:
+    """general object for the ships, allows to store more information that
+    ships can have
+    """
 
     def __init__(self):
         self.ship = None
@@ -370,10 +405,18 @@ class Agent:
         self.target = look_best_cell(self.ship, game, 6)
 
 class Actions:
+    """ochestrator of the actions, switching agent status, given commands to agents
+    
+    """
     def __init__(self):
         self.agents = {}
         self.created = 0
     def update(self, game):
+        """ update function, that , every turn update the info of the agents,
+        if they are dead they are popped of the list
+        
+
+        """
         alive = set()
         for ship in get_ships(game):
             alive.add(ship.id)
@@ -390,6 +433,16 @@ class Actions:
 
 
     def give_ordres(self, game, turn, map_game):
+        """Main function, runs differents checks and give differents orders 
+        
+        Arguments:
+        game object -- Halite game object
+        ship object -- Halite game object
+        map_game Map custom object
+        
+        Returns:
+            List of string commands
+        """
         commands = []
 
         if not self.agents:
